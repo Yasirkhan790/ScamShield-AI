@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Union
 
 try:
     from backend.schemas import IndicatorModel
@@ -35,13 +35,22 @@ CATEGORY_RULES = {
     "Financial scam": {"payment_request", "personal_info_request"}
 }
 
-def calculate_risk(indicators: List[Dict[str, Any]]) -> Tuple[int, str, List[IndicatorModel]]:
+def calculate_risk(indicators: Union[List[Dict[str, Any]], List[str], List[IndicatorModel]]) -> Tuple[int, str, List[IndicatorModel]]:
     seen_names = set()
     total_score = 0
     final_indicators = []
 
     for ind in indicators:
-        name = ind.get("name")
+        if isinstance(ind, dict):
+            name = ind.get("name")
+            desc = ind.get("description", "Suspicious signal detected")
+        elif isinstance(ind, IndicatorModel):
+            name = ind.name
+            desc = ind.description
+        else:
+            name = str(ind)
+            desc = f"Suspicious signal '{name}' detected"
+
         if not name or name in seen_names:
             continue
         seen_names.add(name)
@@ -50,7 +59,7 @@ def calculate_risk(indicators: List[Dict[str, Any]]) -> Tuple[int, str, List[Ind
         total_score += weight
         final_indicators.append(IndicatorModel(
             name=name,
-            description=ind.get("description", "Suspicious signal detected"),
+            description=desc,
             weight=weight
         ))
 
@@ -68,11 +77,20 @@ def calculate_risk(indicators: List[Dict[str, Any]]) -> Tuple[int, str, List[Ind
     return score, level, final_indicators
 
 
-def classify_category(indicators: List[IndicatorModel]) -> Tuple[str, str]:
+def classify_category(indicators: Union[List[IndicatorModel], List[Dict[str, Any]], List[str]]) -> Tuple[str, str]:
     if not indicators:
         return "Uncategorized / No significant indicators", "low"
 
-    fired_set = {ind.name for ind in indicators}
+    fired_set = set()
+    for ind in indicators:
+        if isinstance(ind, IndicatorModel):
+            fired_set.add(ind.name)
+        elif isinstance(ind, dict):
+            if ind.get("name"):
+                fired_set.add(ind["name"])
+        else:
+            fired_set.add(str(ind))
+
     best_category = "Other suspicious activity"
     max_overlap = 0
 

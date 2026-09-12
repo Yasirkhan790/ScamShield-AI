@@ -21,7 +21,7 @@ INDICATOR_DESCRIPTIONS = {
 
 INDICATOR_PATTERNS = {
     "urgency": [r"\burgent\b", r"\bimmediat(ely|e)\b", r"\bact now\b", r"\bright now\b", r"\bhurry\b", r"\bquick(ly)?\b"],
-    "threat": [r"\bpolice\b", r"\blegal action\b", r"\barrest\b", r"\bsued?\b", r"\bpenalty\b", r"\bprosecut(e|ion)\b", r"\bdeactivat(e|ed|ion)\b"],
+    "threat": [r"\bpolice\b", r"\blegal action\b", r"\barrest\b", r"\bsued?\b", r"\bpenalty\b", r"\bprosecut(e|ion)\b", r"\bdeactivat(e|ed|ion)\b", r"\byou will lose access\b"],
     "account_suspension": [r"\baccount.*(suspend|block|restrict|lock|clos)(ed|ing)?\b", r"\bsuspend(ed)?\b", r"\bsecurity breach\b", r"\bunauthorized access\b"],
     "credential_request": [r"\bverifi(ed|y).*(account|password|identity|credential)\b", r"\bpassword\b", r"\blogin\b", r"\bcredentials?\b", r"\benter.*pass\b"],
     "otp_request": [r"\botp\b", r"\bone[- ]time (password|pin|code)\b", r"\bverification code\b", r"\b2fa code\b", r"\bsecurity code\b"],
@@ -38,8 +38,15 @@ INDICATOR_PATTERNS = {
 
 URL_REGEX = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+', re.IGNORECASE)
 
-def analyze_message(text: str) -> Tuple[List[Dict[str, Any]], List[str], List[str]]:
-    indicators = []
+class AnalysisResultDict(dict):
+    """
+    Supports both dict key access (e.g. result['indicators']) and tuple unpacking
+    (indicators, detected_urls, notes = analyze_message(text)) for full test compatibility.
+    """
+    def __iter__(self):
+        return iter((self["indicator_details"], self["urls"], self["contextual_notes"]))
+
+def analyze_message(text: str) -> AnalysisResultDict:
     text_lower = text.lower()
     fired_names = set()
 
@@ -61,11 +68,17 @@ def analyze_message(text: str) -> Tuple[List[Dict[str, Any]], List[str], List[st
     if "impersonation" in fired_names and "account_suspension" in fired_names:
         notes.append("High-risk pattern: Brand impersonation with account suspension threats is a common credential harvesting tactic.")
 
+    indicator_details = []
     for name in fired_names:
-        indicators.append({
+        indicator_details.append({
             "name": name,
             "description": INDICATOR_DESCRIPTIONS.get(name, "Suspicious pattern detected"),
             "weight": 0
         })
 
-    return indicators, detected_urls, notes
+    return AnalysisResultDict({
+        "indicators": list(fired_names),
+        "indicator_details": indicator_details,
+        "urls": detected_urls,
+        "contextual_notes": notes
+    })

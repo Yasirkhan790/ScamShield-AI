@@ -18,6 +18,7 @@ def get_db_connection() -> sqlite3.Connection:
     return conn
 
 def init_db() -> None:
+    """Initialize the SQLite database schema."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -46,6 +47,10 @@ def init_db() -> None:
         logger.error(f"Failed to initialize database: {e}")
 
 def save_analysis(result: AnalysisResultResponse, raw_content: str) -> Optional[int]:
+    """
+    Save analysis result to SQLite database.
+    DB write errors are logged and swallowed per PRD Section 10/22.
+    """
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -80,6 +85,7 @@ def save_analysis(result: AnalysisResultResponse, raw_content: str) -> Optional[
         return None
 
 def get_history(limit: int = 50) -> List[HistorySummaryResponse]:
+    """Retrieve recent analyses summary records sorted newest-first."""
     results = []
     try:
         conn = get_db_connection()
@@ -108,6 +114,7 @@ def get_history(limit: int = 50) -> List[HistorySummaryResponse]:
     return results
 
 def get_analysis_by_id(analysis_id: int) -> Optional[AnalysisResultResponse]:
+    """Retrieve full analysis result by ID."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()

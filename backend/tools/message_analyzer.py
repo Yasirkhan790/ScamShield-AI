@@ -1,166 +1,84 @@
 import re
+from typing import List, Dict, Any, Tuple
 
-
-SCAM_PATTERNS = {
-    "urgency": [
-        "urgent",
-        "immediately",
-        "act now",
-        "right away",
-    ],
-    "threat": [
-        "you will be arrested",
-        "legal action",
-        "police will",
-        "your account will be closed",
-        "you will lose access",
-    ],
-    "account_suspension": [
-        "account suspended",
-        "account will be suspended",
-        "account blocked",
-        "account locked",
-        "account disabled",
-        "account is suspended",
-    ],
-    "credential_request": [
-        "password",
-        "login details",
-        "login credentials",
-        "username and password",
-    ],
-    "otp_request": [
-        "otp",
-        "one time password",
-        "verification code",
-        "security code",
-    ],
-    "payment_request": [
-        "send money",
-        "make payment",
-        "pay now",
-        "transfer money",
-        "bank transfer",
-    ],
-    "prize_claim": [
-        "you have won",
-        "you won",
-        "claim your prize",
-        "claim your reward",
-        "lottery winner",
-    ],
-    "impersonation": [
-        "this is your bank",
-        "this is the police",
-        "this is from the government",
-        "i am calling from your bank",
-    ],
-    "suspicious_link_language": [
-        "click this link",
-        "click here",
-        "open this link",
-    ],
-    "personal_info_request": [
-        "date of birth",
-        "social security number",
-        "national id",
-        "id card number",
-        "personal information",
-    ],
-    "emotional_pressure": [
-        "please help me",
-        "i need your help",
-        "don't tell anyone",
-        "keep this secret",
-        "i am desperate",
-    ],
-    "limited_time_pressure": [
-        "limited time",
-        "expires today",
-        "only today",
-        "within 24 hours",
-        "offer expires",
-    ],
-    "job_offer_scam": [
-        "job offer",
-        "work from home",
-        "easy money",
-        "earn money quickly",
-        "guaranteed income",
-    ],
-    "investment_scam": [
-        "guaranteed return",
-        "guaranteed profit",
-        "double your money",
-        "investment opportunity",
-        "risk free investment",
-    ],
-    "romance_pressure": [
-        "i love you",
-        "send me money",
-        "help me financially",
-        "i need money urgently",
-        "send money for my emergency",
-    ],
+INDICATOR_DESCRIPTIONS = {
+    "credential_request": "Request for password or login credentials",
+    "otp_request": "Request for one-time verification code or OTP",
+    "payment_request": "Urgent request to transfer money or make a payment",
+    "suspicious_url": "Contains suspicious or unverified web links",
+    "urgency": "Urgent or high-pressure language demanding immediate action",
+    "threat": "Threats of account termination, legal action, or penalties",
+    "account_suspension": "Warning of account lock, suspension, or compromise",
+    "prize_claim": "Claims of lottery wins, prize payouts, or free rewards",
+    "job_offer_scam": "Suspicious job offer or high-pay easy task promotion",
+    "investment_scam": "Promotions promising guaranteed high investment returns",
+    "impersonation": "Claims to represent official institutions (banks, services, executives)",
+    "personal_info_request": "Request for sensitive personal details (SSN, national ID, address)",
+    "emotional_pressure": "Appeals to panic, fear, or emotional distress",
+    "limited_time_pressure": "Artificial time limits (e.g. 'within 24 hours', 'act now')",
+    "romance_pressure": "Romantic or social engineering manipulation language"
 }
 
+INDICATOR_PATTERNS = {
+    "urgency": [r"\burgent\b", r"\bimmediat(ely|e)\b", r"\bact now\b", r"\bright now\b", r"\bhurry\b", r"\bquick(ly)?\b"],
+    "threat": [r"\bpolice\b", r"\blegal action\b", r"\barrest\b", r"\bsued?\b", r"\bpenalty\b", r"\bprosecut(e|ion)\b", r"\bdeactivat(e|ed|ion)\b", r"\byou will lose access\b"],
+    "account_suspension": [r"\baccount.*(suspend|block|restrict|lock|clos)(ed|ing)?\b", r"\bsuspend(ed)?\b", r"\bsecurity breach\b", r"\bunauthorized access\b"],
+    "credential_request": [r"\bverifi(ed|y).*(account|password|identity|credential)\b", r"\bpassword\b", r"\blogin\b", r"\bcredentials?\b", r"\benter.*pass\b"],
+    "otp_request": [r"\botp\b", r"\bone[- ]time (password|pin|code)\b", r"\bverification code\b", r"\b2fa code\b", r"\bsecurity code\b"],
+    "payment_request": [r"\bsend money\b", r"\bwire transfer\b", r"\bpay.*fee\b", r"\bgift card\b", r"\bcrypto(currency)?\b", r"\bbitcoin\b", r"\bpayment required\b"],
+    "prize_claim": [r"\bclaim.*prize\b", r"\byou (have )?won\b", r"\blottery\b", r"\bwinner\b", r"\bjackpot\b", r"\bfree reward\b"],
+    "impersonation": [r"\b(bank|paypal|amazon|apple|microsoft|netflix|usps|fedex|ups|government|irs|sec)\b", r"\bofficial support\b", r"\bcustomer service\b"],
+    "personal_info_request": [r"\bssn\b", r"\bsocial security\b", r"\bcredit card number\b", r"\bcvv\b", r"\bbank account number\b"],
+    "emotional_pressure": [r"\bhelp me\b", r"\bemergency\b", r"\bin trouble\b", r"\bdon't tell anyone\b", r"\bkeep this secret\b"],
+    "limited_time_pressure": [r"\bwithin 24 hours?\b", r"\bexpires (today|soon)\b", r"\blimited time\b", r"\btime running out\b"],
+    "job_offer_scam": [r"\bearn \$?\d+ (a|per) (day|hour)\b", r"\bwork from home\b", r"\bno experience needed\b", r"\beasy job\b", r"\bdata entry job\b"],
+    "investment_scam": [r"\bguaranteed return\b", r"\b100% risk[- ]free\b", r"\bdouble your money\b", r"\bcrypto investment\b", r"\bpassive income\b"],
+    "romance_pressure": [r"\bmy love\b", r"\bdearest\b", r"\bneed money for flight\b", r"\bsend money for medical\b"]
+}
 
-URL_PATTERN = r"https?://[^\s<>'\"]+"
+URL_REGEX = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+', re.IGNORECASE)
 
-
-def analyze_message(message: str) -> dict:
+class AnalysisResultDict(dict):
     """
-    Analyze untrusted message content for scam indicators.
-
-    The submitted message is treated only as untrusted data.
-    It is never interpreted as instructions or executed.
+    Supports both dict key access (e.g. result['indicators']) and tuple unpacking
+    (indicators, detected_urls, notes = analyze_message(text)) for full test compatibility.
     """
+    def __iter__(self):
+        return iter((self["indicator_details"], self["urls"], self["contextual_notes"]))
 
-    if not message or not message.strip():
-        raise ValueError("Message text must not be empty.")
+def analyze_message(text: str) -> AnalysisResultDict:
+    text_lower = text.lower()
+    fired_names = set()
 
-    if len(message) > 8000:
-        raise ValueError("Message must not exceed 8000 characters.")
+    for name, patterns in INDICATOR_PATTERNS.items():
+        for pattern in patterns:
+            if re.search(pattern, text_lower):
+                fired_names.add(name)
+                break
 
-    message_lower = " ".join(message.lower().split())
+    detected_urls = URL_REGEX.findall(text)
+    if detected_urls and "suspicious_url" not in fired_names:
+        fired_names.add("suspicious_url")
 
-    indicators = []
-    matched_keywords = []
+    notes = []
+    if "urgency" in fired_names and "credential_request" in fired_names:
+        notes.append("High-risk pattern: Urgency combined with credential request is a classic phishing indicator.")
+    if "prize_claim" in fired_names and "payment_request" in fired_names:
+        notes.append("High-risk pattern: Prize notification requiring payment is a characteristic lottery scam.")
+    if "impersonation" in fired_names and "account_suspension" in fired_names:
+        notes.append("High-risk pattern: Brand impersonation with account suspension threats is a common credential harvesting tactic.")
 
-    for indicator_name, keywords in SCAM_PATTERNS.items():
-        for keyword in keywords:
-            if re.search(r"\b" + re.escape(keyword) + r"\b", message_lower):
-                if indicator_name not in indicators:
-                    indicators.append(indicator_name)
+    indicator_details = []
+    for name in fired_names:
+        indicator_details.append({
+            "name": name,
+            "description": INDICATOR_DESCRIPTIONS.get(name, "Suspicious pattern detected"),
+            "weight": 0
+        })
 
-                matched_keywords.append(keyword)
-
-    urls = list(dict.fromkeys(re.findall(URL_PATTERN, message)))
-
-    if "suspicious_link_language" in indicators and urls:
-        if "suspicious_url" not in indicators:
-            indicators.append("suspicious_url")
-
-    contextual_notes = []
-
-    if "urgency" in indicators and "credential_request" in indicators:
-        contextual_notes.append(
-            "Urgency combined with a credential request is a classic phishing signal."
-        )
-
-    if "prize_claim" in indicators and "payment_request" in indicators:
-        contextual_notes.append(
-            "A prize claim combined with a payment request is a strong lottery scam signal."
-        )
-
-    if "impersonation" in indicators and "account_suspension" in indicators:
-        contextual_notes.append(
-            "Impersonation combined with an account suspension threat is a common phishing tactic."
-        )
-
-    return {
-        "indicators": indicators,
-        "matched_keywords": matched_keywords,
-        "urls": urls,
-        "contextual_notes": contextual_notes,
-    }
+    return AnalysisResultDict({
+        "indicators": list(fired_names),
+        "indicator_details": indicator_details,
+        "urls": detected_urls,
+        "contextual_notes": notes
+    })

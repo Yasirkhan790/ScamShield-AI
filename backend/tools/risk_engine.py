@@ -1,4 +1,11 @@
-RISK_WEIGHTS = {
+from typing import List, Dict, Any, Tuple, Union
+
+try:
+    from backend.schemas import IndicatorModel
+except ImportError:
+    from schemas import IndicatorModel
+
+INDICATOR_WEIGHTS = {
     "credential_request": 25,
     "otp_request": 25,
     "payment_request": 20,
@@ -13,163 +20,95 @@ RISK_WEIGHTS = {
     "personal_info_request": 10,
     "emotional_pressure": 10,
     "limited_time_pressure": 10,
-    "romance_pressure": 10,
+    "romance_pressure": 10
 }
-
-
-RISK_LABELS = {
-    "credential_request": "Requests your password or login credentials",
-    "otp_request": "Requests a one-time password or verification code",
-    "payment_request": "Requests money or a payment",
-    "suspicious_url": "Contains a suspicious link",
-    "urgency": "Uses urgent language to pressure you",
-    "threat": "Uses threats or fear to pressure you",
-    "account_suspension": "Claims your account may be suspended or closed",
-    "prize_claim": "Claims you have won a prize or reward",
-    "job_offer_scam": "Uses patterns commonly found in fake job offers",
-    "investment_scam": "Uses patterns commonly found in investment scams",
-    "impersonation": "Pretends to be a trusted person or organization",
-    "personal_info_request": "Requests sensitive personal information",
-    "emotional_pressure": "Uses emotional pressure to influence your decision",
-    "limited_time_pressure": "Creates pressure through a limited deadline",
-    "romance_pressure": "Uses patterns associated with romance scams",
-}
-
 
 CATEGORY_RULES = {
-    "Phishing": {
-        "urgency",
-        "credential_request",
-        "suspicious_url",
-        "account_suspension",
-    },
-    "Financial scam": {
-        "payment_request",
-        "prize_claim",
-        "investment_scam",
-    },
-    "Credential theft": {
-        "credential_request",
-        "otp_request",
-    },
-    "Prize/lottery scam": {
-        "prize_claim",
-        "payment_request",
-    },
-    "Account impersonation": {
-        "impersonation",
-        "account_suspension",
-    },
-    "Job scam": {
-        "job_offer_scam",
-    },
-    "Investment scam": {
-        "investment_scam",
-    },
-    "Payment scam": {
-        "payment_request",
-    },
-    "Romance/social engineering scam": {
-        "romance_pressure",
-        "emotional_pressure",
-    },
-    "Other suspicious activity": set(),
+    "Credential theft": {"credential_request", "otp_request"},
+    "Phishing": {"credential_request", "account_suspension", "suspicious_url"},
+    "Prize/lottery scam": {"prize_claim", "payment_request"},
+    "Account impersonation": {"impersonation", "account_suspension"},
+    "Job scam": {"job_offer_scam", "payment_request"},
+    "Investment scam": {"investment_scam", "payment_request"},
+    "Payment scam": {"payment_request", "urgency"},
+    "Romance/social engineering scam": {"romance_pressure", "emotional_pressure"},
+    "Financial scam": {"payment_request", "personal_info_request"}
 }
 
+def calculate_risk(indicators: Union[List[Dict[str, Any]], List[str], List[IndicatorModel]]) -> Tuple[int, str, List[IndicatorModel]]:
+    seen_names = set()
+    total_score = 0
+    final_indicators = []
 
-def calculate_confidence(indicator_count: int) -> str:
-    if indicator_count >= 4:
-        return "high"
-    elif indicator_count >= 2:
-        return "medium"
-    else:
-        return "low"
+    for ind in indicators:
+        if isinstance(ind, dict):
+            name = ind.get("name")
+            desc = ind.get("description", "Suspicious signal detected")
+        elif isinstance(ind, IndicatorModel):
+            name = ind.name
+            desc = ind.description
+        else:
+            name = str(ind)
+            desc = f"Suspicious signal '{name}' detected"
 
-
-def calculate_risk(indicators: list[str]) -> dict:
-    """
-    Calculate a deterministic scam risk score from detected indicators.
-    Unknown indicators contribute zero and do not cause an error.
-    """
-
-    unique_indicators = list(dict.fromkeys(indicators))
-
-    contributing_indicators = []
-
-    for indicator in unique_indicators:
-        weight = RISK_WEIGHTS.get(indicator, 0)
-
-        if weight > 0:
-            contributing_indicators.append({
-                "indicator": indicator,
-                "weight": weight,
-                "label": RISK_LABELS[indicator],
-            })
-
-    score = sum(
-        item["weight"]
-        for item in contributing_indicators
-    )
-
-    score = min(score, 100)
-
-    if score >= 80:
-        risk_level = "CRITICAL"
-    elif score >= 60:
-        risk_level = "HIGH"
-    elif score >= 30:
-        risk_level = "MEDIUM"
-    else:
-        risk_level = "LOW"
-
-    confidence = calculate_confidence(len(contributing_indicators))
-
-    return {
-        "risk_score": score,
-        "risk_level": risk_level,
-        "confidence": confidence,
-        "contributing_indicators": contributing_indicators,
-    }
-
-
-def classify_category(indicators: list[str]) -> dict:
-    """
-    Classify a scam based on detected indicators.
-    """
-
-    if not indicators:
-        return {
-            "category": "Uncategorized / No significant indicators",
-            "confidence": "low",
-        }
-
-    unique_indicators = list(dict.fromkeys(indicators))
-
-    best_category = None
-    best_overlap = 0
-
-    for category, required_indicators in CATEGORY_RULES.items():
-        if not required_indicators:
+        if not name or name in seen_names:
             continue
+        seen_names.add(name)
+        
+        weight = INDICATOR_WEIGHTS.get(name, 0)
+        total_score += weight
+        final_indicators.append(IndicatorModel(
+            name=name,
+            description=desc,
+            weight=weight
+        ))
 
-        overlap = len(set(unique_indicators) & required_indicators)
+    score = min(total_score, 100)
 
-        if overlap > best_overlap:
-            best_overlap = overlap
-            best_category = category
-
-    if best_category is None:
-        return {
-            "category": "Other suspicious activity",
-            "confidence": "medium",
-        }
-
-    if best_overlap >= 2:
-        confidence = "high"
+    if score < 30:
+        level = "LOW"
+    elif score < 60:
+        level = "MEDIUM"
+    elif score < 80:
+        level = "HIGH"
     else:
-        confidence = "medium"
+        level = "CRITICAL"
 
-    return {
-        "category": best_category,
-        "confidence": confidence,
-    }
+    return score, level, final_indicators
+
+
+def classify_category(indicators: Union[List[IndicatorModel], List[Dict[str, Any]], List[str]]) -> Tuple[str, str]:
+    if not indicators:
+        return "Uncategorized / No significant indicators", "low"
+
+    fired_set = set()
+    for ind in indicators:
+        if isinstance(ind, IndicatorModel):
+            fired_set.add(ind.name)
+        elif isinstance(ind, dict):
+            if ind.get("name"):
+                fired_set.add(ind["name"])
+        else:
+            fired_set.add(str(ind))
+
+    best_category = "Other suspicious activity"
+    max_overlap = 0
+
+    for cat_name, required_set in CATEGORY_RULES.items():
+        overlap = len(fired_set.intersection(required_set))
+        if overlap > max_overlap:
+            max_overlap = overlap
+            best_category = cat_name
+
+    num_categories = len(fired_set)
+    if num_categories <= 1:
+        confidence = "low" if max_overlap < 1 else "medium"
+    elif num_categories <= 3:
+        confidence = "medium"
+    else:
+        confidence = "high"
+
+    if max_overlap >= 2:
+        confidence = "high"
+
+    return best_category, confidence

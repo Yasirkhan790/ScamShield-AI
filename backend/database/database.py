@@ -2,8 +2,13 @@ import sqlite3
 import json
 import logging
 from typing import List, Optional
-from backend.config import settings
-from backend.schemas import AnalysisResultResponse, HistorySummaryResponse, IndicatorModel
+
+try:
+    from backend.config import settings
+    from backend.schemas import AnalysisResultResponse, HistorySummaryResponse, IndicatorModel
+except ImportError:
+    from config import settings
+    from schemas import AnalysisResultResponse, HistorySummaryResponse, IndicatorModel
 
 logger = logging.getLogger(__name__)
 

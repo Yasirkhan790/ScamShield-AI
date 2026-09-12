@@ -29,15 +29,15 @@ logger = logging.getLogger("scamshield.backend")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Initializing ScamShield AI Backend...")
+    logger.info("Initializing ScamShield AI Backend & Agent...")
     init_db()
     yield
-    logger.info("Shutting down ScamShield AI Backend...")
+    logger.info("Shutting down ScamShield AI...")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="FastAPI Backend for ScamShield AI - Defensive Scam Detection Assistant",
+    description="FastAPI Backend & Agentic AI for ScamShield AI",
     lifespan=lifespan
 )
 

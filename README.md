@@ -6,7 +6,7 @@ ScamShield AI is an explainable, AI-assisted scam-risk assessment web applicatio
 
 ScamShield is an educational and security-assistance tool. It does not claim guaranteed scam detection or guaranteed safety.
 
-## Final hackathon release status
+## hackathon release status
 
 Core hackathon MVP is implemented and frozen as final hackathon release `1.0.0`.
 

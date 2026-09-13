@@ -1,10 +1,14 @@
 import base64
+import logging
 import os
 from abc import ABC, abstractmethod
 
 import httpx
 
 from app.ai.prompts import SCAMSHIELD_SYSTEM_PROMPT
+
+
+logger = logging.getLogger("scamshield.ai")
 
 
 class AIProviderError(RuntimeError):
@@ -26,13 +30,21 @@ class BaseAIProvider(ABC):
         raise NotImplementedError
 
     def extract_text_from_image(self, image_bytes: bytes, mime_type: str) -> str:
-        raise AIProviderError("This AI provider does not support screenshot text extraction")
+        raise AIProviderError(
+            "This AI provider does not support screenshot text extraction"
+        )
 
 
 class OpenAICompatibleProvider(BaseAIProvider):
     name = "openai"
 
-    def __init__(self, api_key: str, model: str, base_url: str, timeout: float):
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        base_url: str,
+        timeout: float,
+    ):
         self.api_key = api_key
         self.model = model
         self.base_url = base_url.rstrip("/")
@@ -49,56 +61,102 @@ class OpenAICompatibleProvider(BaseAIProvider):
                 json=payload,
                 timeout=self.timeout,
             )
+
             response.raise_for_status()
+
             return response.json()
+
         except (httpx.HTTPError, TypeError, ValueError) as exc:
-            raise AIProviderError("OpenAI-compatible provider request failed") from exc
+            raise AIProviderError(
+                "OpenAI-compatible provider request failed"
+            ) from exc
 
     def generate_json(self, user_prompt: str) -> str:
         payload = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": SCAMSHIELD_SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
+                {
+                    "role": "system",
+                    "content": SCAMSHIELD_SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": user_prompt,
+                },
             ],
             "temperature": 0.1,
-            "response_format": {"type": "json_object"},
+            "response_format": {
+                "type": "json_object"
+            },
         }
+
         try:
             data = self._post(payload)
-            return data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError) as exc:
-            raise AIProviderError("OpenAI-compatible provider returned an invalid response") from exc
 
-    def extract_text_from_image(self, image_bytes: bytes, mime_type: str) -> str:
-        encoded = base64.b64encode(image_bytes).decode("ascii")
+            return data["choices"][0]["message"]["content"]
+
+        except (KeyError, IndexError, TypeError) as exc:
+            raise AIProviderError(
+                "OpenAI-compatible provider returned an invalid response"
+            ) from exc
+
+    def extract_text_from_image(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+    ) -> str:
+        encoded = base64.b64encode(
+            image_bytes
+        ).decode("ascii")
+
         payload = {
             "model": self.model,
             "messages": [
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": IMAGE_EXTRACTION_PROMPT},
+                        {
+                            "type": "text",
+                            "text": IMAGE_EXTRACTION_PROMPT,
+                        },
                         {
                             "type": "image_url",
-                            "image_url": {"url": f"data:{mime_type};base64,{encoded}"},
+                            "image_url": {
+                                "url": (
+                                    f"data:{mime_type};"
+                                    f"base64,{encoded}"
+                                )
+                            },
                         },
                     ],
                 }
             ],
             "temperature": 0,
         }
+
         try:
             data = self._post(payload)
-            return str(data["choices"][0]["message"]["content"]).strip()
+
+            return str(
+                data["choices"][0]["message"]["content"]
+            ).strip()
+
         except (KeyError, IndexError, TypeError) as exc:
-            raise AIProviderError("OpenAI-compatible image extraction returned an invalid response") from exc
+            raise AIProviderError(
+                "OpenAI-compatible image extraction returned an invalid response"
+            ) from exc
 
 
 class GeminiProvider(BaseAIProvider):
     name = "gemini"
 
-    def __init__(self, api_key: str, model: str, base_url: str, timeout: float):
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        base_url: str,
+        timeout: float,
+    ):
         self.api_key = api_key
         self.model = model
         self.base_url = base_url.rstrip("/")
@@ -108,39 +166,144 @@ class GeminiProvider(BaseAIProvider):
         try:
             response = httpx.post(
                 f"{self.base_url}/models/{self.model}:generateContent",
-                params={"key": self.api_key},
-                headers={"Content-Type": "application/json"},
+                params={
+                    "key": self.api_key
+                },
+                headers={
+                    "Content-Type": "application/json"
+                },
                 json=payload,
                 timeout=self.timeout,
             )
-            response.raise_for_status()
-            return response.json()
-        except (httpx.HTTPError, TypeError, ValueError) as exc:
-            raise AIProviderError("Gemini provider request failed") from exc
 
-    def generate_json(self, user_prompt: str) -> str:
+            response.raise_for_status()
+
+            return response.json()
+
+        except httpx.HTTPStatusError as exc:
+            status_code = exc.response.status_code
+
+            response_text = exc.response.text[:800]
+
+            logger.error(
+                "Gemini HTTP error. status=%s model=%s response=%s",
+                status_code,
+                self.model,
+                response_text,
+            )
+
+            raise AIProviderError(
+                f"Gemini request failed with HTTP "
+                f"{status_code}: {response_text}"
+            ) from exc
+
+        except httpx.TimeoutException as exc:
+            logger.error(
+                "Gemini request timed out. "
+                "model=%s timeout=%s",
+                self.model,
+                self.timeout,
+            )
+
+            raise AIProviderError(
+                f"Gemini request timed out after "
+                f"{self.timeout} seconds"
+            ) from exc
+
+        except httpx.RequestError as exc:
+            logger.error(
+                "Gemini network error. "
+                "model=%s error=%s",
+                self.model,
+                exc,
+            )
+
+            raise AIProviderError(
+                f"Gemini network request failed: {exc}"
+            ) from exc
+
+        except (TypeError, ValueError) as exc:
+            logger.error(
+                "Gemini response processing error. "
+                "model=%s error=%s",
+                self.model,
+                exc,
+            )
+
+            raise AIProviderError(
+                f"Gemini response processing failed: {exc}"
+            ) from exc
+
+    def generate_json(
+        self,
+        user_prompt: str,
+    ) -> str:
         payload = {
-            "system_instruction": {"parts": [{"text": SCAMSHIELD_SYSTEM_PROMPT}]},
-            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+            "system_instruction": {
+                "parts": [
+                    {
+                        "text": SCAMSHIELD_SYSTEM_PROMPT
+                    }
+                ]
+            },
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "text": user_prompt
+                        }
+                    ],
+                }
+            ],
             "generationConfig": {
                 "temperature": 0.1,
                 "responseMimeType": "application/json",
             },
         }
+
         try:
             data = self._post(payload)
-            return data["candidates"][0]["content"]["parts"][0]["text"]
-        except (KeyError, IndexError, TypeError) as exc:
-            raise AIProviderError("Gemini provider returned an invalid response") from exc
 
-    def extract_text_from_image(self, image_bytes: bytes, mime_type: str) -> str:
-        encoded = base64.b64encode(image_bytes).decode("ascii")
+            return data[
+                "candidates"
+            ][0][
+                "content"
+            ][
+                "parts"
+            ][0][
+                "text"
+            ]
+
+        except (KeyError, IndexError, TypeError) as exc:
+            logger.error(
+                "Gemini returned invalid JSON response. "
+                "model=%s response=%s",
+                self.model,
+                data,
+            )
+
+            raise AIProviderError(
+                "Gemini provider returned an invalid response"
+            ) from exc
+
+    def extract_text_from_image(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+    ) -> str:
+        encoded = base64.b64encode(
+            image_bytes
+        ).decode("ascii")
+
         payload = {
             "contents": [
                 {
                     "role": "user",
                     "parts": [
-                        {"text": IMAGE_EXTRACTION_PROMPT},
+                        {
+                            "text": IMAGE_EXTRACTION_PROMPT
+                        },
                         {
                             "inline_data": {
                                 "mime_type": mime_type,
@@ -150,38 +313,134 @@ class GeminiProvider(BaseAIProvider):
                     ],
                 }
             ],
-            "generationConfig": {"temperature": 0},
+            "generationConfig": {
+                "temperature": 0
+            },
         }
+
         try:
             data = self._post(payload)
-            return str(data["candidates"][0]["content"]["parts"][0]["text"]).strip()
-        except (KeyError, IndexError, TypeError) as exc:
-            raise AIProviderError("Gemini image extraction returned an invalid response") from exc
+
+            text = str(
+                data[
+                    "candidates"
+                ][0][
+                    "content"
+                ][
+                    "parts"
+                ][0][
+                    "text"
+                ]
+            ).strip()
+
+            if not text:
+                logger.error(
+                    "Gemini screenshot extraction "
+                    "returned empty text. "
+                    "model=%s response=%s",
+                    self.model,
+                    data,
+                )
+
+                raise AIProviderError(
+                    "Gemini screenshot extraction "
+                    "returned empty text"
+                )
+
+            return text
+
+        except AIProviderError:
+            raise
+
+        except (
+            KeyError,
+            IndexError,
+            TypeError,
+        ) as exc:
+            logger.error(
+                "Gemini returned invalid image response. "
+                "model=%s response=%s",
+                self.model,
+                data,
+            )
+
+            raise AIProviderError(
+                "Gemini image extraction "
+                "returned an invalid response"
+            ) from exc
 
 
 def get_ai_provider() -> BaseAIProvider | None:
-    provider_name = os.getenv("AI_PROVIDER", "").strip().lower()
-    api_key = os.getenv("AI_API_KEY", "").strip()
-    model = os.getenv("AI_MODEL", "").strip()
+    provider_name = os.getenv(
+        "AI_PROVIDER",
+        "",
+    ).strip().lower()
+
+    api_key = os.getenv(
+        "AI_API_KEY",
+        "",
+    ).strip()
+
+    model = os.getenv(
+        "AI_MODEL",
+        "",
+    ).strip()
+
     try:
-        timeout = float(os.getenv("AI_TIMEOUT_SECONDS", "15"))
+        timeout = float(
+            os.getenv(
+                "AI_TIMEOUT_SECONDS",
+                "15",
+            )
+        )
+
     except ValueError:
         timeout = 15.0
 
-    if provider_name in {"", "disabled", "none", "off"}:
+    if provider_name in {
+        "",
+        "disabled",
+        "none",
+        "off",
+    }:
         return None
+
     if not api_key or not model:
         return None
 
-    if provider_name in {"openai", "openai-compatible"}:
-        base_url = os.getenv("AI_BASE_URL", "").strip() or "https://api.openai.com/v1"
-        return OpenAICompatibleProvider(api_key, model, base_url, timeout)
+    if provider_name in {
+        "openai",
+        "openai-compatible",
+    }:
+        base_url = (
+            os.getenv(
+                "AI_BASE_URL",
+                "",
+            ).strip()
+            or "https://api.openai.com/v1"
+        )
+
+        return OpenAICompatibleProvider(
+            api_key,
+            model,
+            base_url,
+            timeout,
+        )
 
     if provider_name == "gemini":
         base_url = (
-            os.getenv("AI_BASE_URL", "").strip()
+            os.getenv(
+                "AI_BASE_URL",
+                "",
+            ).strip()
             or "https://generativelanguage.googleapis.com/v1beta"
         )
-        return GeminiProvider(api_key, model, base_url, timeout)
+
+        return GeminiProvider(
+            api_key,
+            model,
+            base_url,
+            timeout,
+        )
 
     return None

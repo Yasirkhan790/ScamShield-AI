@@ -1,0 +1,188 @@
+{
+  "version": "2.0",
+  "positive_indicators": {
+    "social_engineering": [
+      "urgency",
+      "time_pressure",
+      "fear_or_threat",
+      "authority_pressure",
+      "secrecy_request",
+      "emotional_manipulation",
+      "scarcity_pressure",
+      "unexpected_reward",
+      "communication_channel_change",
+      "request_to_bypass_normal_process"
+    ],
+
+    "credential_theft": [
+      "password_request",
+      "otp_request",
+      "pin_request",
+      "verification_code_request",
+      "recovery_code_request",
+      "security_answer_request",
+      "card_details_request",
+      "cvv_request",
+      "login_credentials_request",
+      "fake_identity_verification"
+    ],
+
+    "financial_fraud": [
+      "upfront_payment",
+      "processing_fee",
+      "registration_fee",
+      "release_fee",
+      "unexpected_invoice",
+      "bank_transfer_request",
+      "crypto_payment_request",
+      "gift_card_request",
+      "payment_redirection",
+      "refund_fee",
+      "advance_payment"
+    ],
+
+    "impersonation": [
+      "bank_impersonation",
+      "government_impersonation",
+      "police_impersonation",
+      "company_impersonation",
+      "employer_impersonation",
+      "recruiter_impersonation",
+      "family_impersonation",
+      "friend_impersonation",
+      "technical_support_impersonation",
+      "delivery_company_impersonation",
+      "social_platform_impersonation"
+    ],
+
+    "account_takeover": [
+      "account_suspension_claim",
+      "fake_security_alert",
+      "fake_verification_request",
+      "password_reset_request",
+      "mfa_bypass_attempt",
+      "account_recovery_request",
+      "unusual_login_claim"
+    ],
+
+    "job_scam": [
+      "unrealistic_salary",
+      "guaranteed_job",
+      "no_interview_job",
+      "registration_payment",
+      "training_fee",
+      "equipment_payment",
+      "fake_recruiter",
+      "job_offer_without_application",
+      "move_to_private_chat"
+    ],
+
+    "investment_scam": [
+      "guaranteed_returns",
+      "risk_free_investment",
+      "unrealistic_profit",
+      "investment_pressure",
+      "crypto_investment_request",
+      "exclusive_investment_claim",
+      "limited_time_investment",
+      "fake_trading_platform"
+    ],
+
+    "prize_scam": [
+      "unexpected_prize",
+      "lottery_claim",
+      "giveaway_claim",
+      "claim_fee",
+      "reward_activation_fee",
+      "unexpected_cash_reward"
+    ],
+
+    "romance_scam": [
+      "rapid_emotional_attachment",
+      "emergency_money_request",
+      "travel_money_request",
+      "medical_money_request",
+      "relationship_secrecy",
+      "move_off_platform",
+      "repeated_financial_help"
+    ],
+
+    "malware_and_device_access": [
+      "apk_install_request",
+      "unknown_software_install",
+      "remote_access_request",
+      "screen_share_request",
+      "disable_antivirus_request",
+      "unknown_attachment",
+      "macro_enable_request",
+      "download_from_untrusted_source"
+    ],
+
+    "identity_theft": [
+      "national_id_request",
+      "cnic_request",
+      "passport_request",
+      "selfie_verification_request",
+      "bank_statement_request",
+      "identity_document_request",
+      "personal_information_request"
+    ],
+
+    "delivery_scam": [
+      "unexpected_package",
+      "delivery_fee_request",
+      "customs_fee_request",
+      "redelivery_payment",
+      "fake_tracking_link",
+      "delivery_address_verification"
+    ],
+
+    "marketplace_scam": [
+      "off_platform_payment",
+      "advance_payment_to_seller",
+      "fake_escrow",
+      "overpayment_refund",
+      "fake_buyer_payment",
+      "fake_marketplace_support"
+    ],
+
+    "loan_scam": [
+      "guaranteed_loan",
+      "advance_fee_loan",
+      "loan_processing_fee",
+      "credit_check_payment",
+      "loan_without_checks"
+    ],
+
+    "charity_scam": [
+      "urgent_donation_pressure",
+      "unverified_charity",
+      "personal_account_donation",
+      "crypto_donation_request"
+    ],
+
+    "url_risk": [
+      "url_shortener",
+      "ip_address_url",
+      "punycode_domain",
+      "excessive_subdomains",
+      "brand_domain_mismatch",
+      "typosquatting",
+      "encoded_url",
+      "unusual_port",
+      "suspicious_path",
+      "misleading_subdomain",
+      "non_https_sensitive_page"
+    ]
+  },
+
+  "mitigating_indicators": [
+    "security_education_context",
+    "user_reporting_scam",
+    "quoted_scam_example",
+    "never_share_otp_warning",
+    "expected_transaction_confirmation",
+    "user_initiated_verification",
+    "legitimate_security_advice"
+  ]
+}

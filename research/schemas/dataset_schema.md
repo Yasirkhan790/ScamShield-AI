@@ -1,0 +1,11 @@
+record_id
+text
+label
+category
+language
+indicators
+source
+source_type
+is_synthetic
+review_status
+notes

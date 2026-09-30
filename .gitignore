@@ -107,3 +107,18 @@ docker-compose.override.yml
 # Local database journals
 *.db-journal
 *.sqlite-journal
+
+
+# ScamShield V2 research environment
+research/.venv/
+
+# Raw/processed datasets
+research/data/raw/*.csv
+research/data/raw/*.parquet
+research/data/processed/*.csv
+research/data/processed/*.parquet
+research/data/splits/*.csv
+research/data/splits/*.parquet
+
+# Research cache
+research/.cache/

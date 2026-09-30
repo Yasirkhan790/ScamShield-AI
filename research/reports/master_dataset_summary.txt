@@ -1,0 +1,25 @@
+ScamShield AI V2 Master Dataset Summary
+==================================================
+Total records: 22,671
+
+Label distribution:
+label
+legitimate      15492
+scam             6537
+needs_review      642
+
+Source distribution:
+source
+phishing_email_dataset     17514
+uci_sms_spam_collection     5157
+
+Label quality:
+label_quality
+strong      17514
+moderate     4515
+weak          642
+
+Review status:
+review_status
+source_labeled    22029
+needs_review        642

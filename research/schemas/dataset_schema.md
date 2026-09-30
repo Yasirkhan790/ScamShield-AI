@@ -5,6 +5,8 @@ category
 language
 indicators
 source
+source_label
+label_quality
 source_type
 is_synthetic
 review_status

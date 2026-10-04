@@ -1,0 +1,12 @@
+ScamShield AI V2 Group-Aware Split Report
+=======================================================
+
+Near-duplicate threshold: 0.92
+
+Train records: 15,040
+Validation records: 3,241
+Test records: 3,357
+
+Cross-split group leakage: 0
+
+STATUS: GROUP SPLIT PASS

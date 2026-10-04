@@ -1,0 +1,19 @@
+ScamShield AI V2 Leakage Check
+=======================================================
+
+Original master records: 22,671
+Final binary records after cleanup: 21,636
+Conflicting-label rows excluded: 2
+Duplicate/template rows removed: 387
+
+Split sizes:
+Train: 15,145
+Validation: 3,245
+Test: 3,246
+
+Near-duplicate similarity threshold: 0.92
+Cross-split near-duplicate candidates: 702
+
+STATUS: REVIEW REQUIRED
+Do not publish final ML metrics yet.
+Inspect and resolve candidate groups before freezing the evaluation split.

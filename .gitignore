@@ -122,3 +122,16 @@ research/data/splits/*.parquet
 
 # Research cache
 research/.cache/
+
+# ScamShield V2 trained models
+research/models/
+research/data/splits/
+
+
+# Research datasets and final evaluation splits
+research/data/splits/
+research/data/final_splits/
+research/data/processed/
+
+# Research model artifacts
+research/models/

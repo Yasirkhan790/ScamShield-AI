@@ -1,0 +1,15 @@
+{
+  "model": "word_char_tfidf_logistic_regression",
+  "validation": {
+    "accuracy": 0.9863801452784504,
+    "precision_scam": 0.9785056294779939,
+    "recall_scam": 0.9755102040816327,
+    "f1_scam": 0.977005620848237
+  },
+  "test": {
+    "accuracy": 0.9851739788199697,
+    "precision_scam": 0.9755102040816327,
+    "recall_scam": 0.9745158002038736,
+    "f1_scam": 0.9750127485976543
+  }
+}

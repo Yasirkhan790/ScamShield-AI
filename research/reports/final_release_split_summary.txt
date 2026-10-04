@@ -1,0 +1,15 @@
+ScamShield AI V2 Final Release Split
+=======================================================
+
+Random state: 20261003
+Near-duplicate threshold: 0.92
+
+Train records: 15,170
+Validation records: 3,193
+Release holdout records: 3,275
+
+Cross-split group leakage: 0
+
+STATUS: FINAL SPLIT PASS
+
+IMPORTANT: Do not inspect or use release_holdout.csv for threshold selection or model development.

@@ -1,0 +1,12 @@
+ScamShield AI V2 Baseline Error Analysis
+=========================================
+
+Frozen threshold: 0.52
+Test records: 3,357
+Total errors: 70
+False negatives: 39
+False positives: 31
+
+Important:
+These test errors are for analysis only.
+Do not tune the frozen model threshold using test-set results.

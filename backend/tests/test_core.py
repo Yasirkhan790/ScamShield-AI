@@ -1,5 +1,6 @@
-from backend.tools.message_analyzer import analyze_message
-from backend.tools.risk_engine import calculate_risk
+from app.tools.message_analyzer import analyze_message
+from app.tools.risk_engine import calculate_risk
+
 
 def test_message_analyzer_detects_phishing_indicators():
     message = (
@@ -8,9 +9,21 @@ def test_message_analyzer_detects_phishing_indicators():
         "Click this link and enter your password."
     )
 
-    result = analyze_message(message)
+    indicators = analyze_message(message)
 
-    assert "urgency" in result["indicators"]
-    assert "account_suspension" in result["indicators"]
-    assert "threat" in result["indicators"]
-    assert "credential_request" in result["indicators"]
+    codes = {
+        indicator.code
+        for indicator in indicators
+    }
+
+    assert "urgency" in codes
+    assert "account_threat" in codes
+    assert "credential_request" in codes
+
+    score, level = calculate_risk(indicators)
+
+    assert score >= 60
+    assert level in {
+        "HIGH",
+        "CRITICAL",
+    }

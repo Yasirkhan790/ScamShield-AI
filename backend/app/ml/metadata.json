@@ -1,0 +1,51 @@
+{
+  "model_version": "scamshield-text-v2-release-1",
+  "release_status": "frozen",
+  "selected_threshold": 0.4199999999999998,
+  "threshold_selection": "Highest final-validation scam F1 among thresholds with recall >= 0.85",
+  "train_records": 15170,
+  "hardening_records": 88,
+  "hardening_sample_weight": 4.0,
+  "validation_records": 3193,
+  "release_holdout_records": 3275,
+  "validation_metrics": {
+    "threshold": 0.4199999999999998,
+    "accuracy": 0.9884121515815847,
+    "precision_scam": 0.9724867724867725,
+    "recall_scam": 0.9881720430107527,
+    "f1_scam": 0.9802666666666666,
+    "true_negative": 2237,
+    "false_positive": 26,
+    "false_negative": 11,
+    "true_positive": 919
+  },
+  "release_holdout_metrics": {
+    "threshold": 0.4199999999999998,
+    "accuracy": 0.9825954198473282,
+    "precision_scam": 0.9728915662650602,
+    "recall_scam": 0.96996996996997,
+    "f1_scam": 0.9714285714285714,
+    "true_negative": 2249,
+    "false_positive": 27,
+    "false_negative": 30,
+    "true_positive": 969
+  },
+  "challenge_result": {
+    "passed": 9,
+    "total": 10
+  },
+  "near_duplicate_threshold": 0.92,
+  "cross_split_group_leakage": 0,
+  "taxonomy_version": "2.0",
+  "python_version": "3.13.15",
+  "scikit_learn_version": "1.9.1",
+  "pandas_version": "3.0.6",
+  "numpy_version": "2.5.3",
+  "joblib_version": "1.6.0",
+  "model_sha256": "97591919ddf5f47077778c61d3e14b84422c1374a8b17fba291a37d0f4a29a1d",
+  "evaluated_at_utc": "2026-10-03T17:45:04.094832+00:00",
+  "score_warning": "model_scam_score is supporting model evidence and is not a verified real-world fraud probability",
+  "artifact": "artifacts/scamshield_text_model.joblib",
+  "artifact_size_mb": 2.831,
+  "frozen_at_utc": "2026-10-03T17:45:04.150321+00:00"
+}

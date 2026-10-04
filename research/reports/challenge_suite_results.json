@@ -1,0 +1,101 @@
+{
+  "model_version": "scamshield-text-v2-baseline-1",
+  "frozen_threshold": 0.5200000000000001,
+  "passed": 6,
+  "total": 10,
+  "score": 0.6,
+  "target": "8/10 or better",
+  "target_passed": false,
+  "results": [
+    {
+      "id": "C01",
+      "name": "Direct OTP request",
+      "text": "Send your OTP immediately to verify your account.",
+      "expected": "scam",
+      "prediction": "scam",
+      "scam_score": 0.829721,
+      "correct": true
+    },
+    {
+      "id": "C02",
+      "name": "OTP paraphrase",
+      "text": "Tell me the six-digit security code that was just sent to your phone.",
+      "expected": "scam",
+      "prediction": "legitimate",
+      "scam_score": 0.124967,
+      "correct": false
+    },
+    {
+      "id": "C03",
+      "name": "Credential paraphrase",
+      "text": "Please forward the confirmation digits you received so we can restore your access.",
+      "expected": "scam",
+      "prediction": "legitimate",
+      "scam_score": 0.312519,
+      "correct": false
+    },
+    {
+      "id": "C04",
+      "name": "Benign OTP warning",
+      "text": "Never share your OTP or password with anyone.",
+      "expected": "legitimate",
+      "prediction": "legitimate",
+      "scam_score": 0.287491,
+      "correct": true
+    },
+    {
+      "id": "C05",
+      "name": "Prize and release fee",
+      "text": "Congratulations. You won a cash reward. Pay the release fee today to claim it.",
+      "expected": "scam",
+      "prediction": "legitimate",
+      "scam_score": 0.148996,
+      "correct": false
+    },
+    {
+      "id": "C06",
+      "name": "Job scam",
+      "text": "Work from home with guaranteed hiring. Pay the registration fee today to start.",
+      "expected": "scam",
+      "prediction": "legitimate",
+      "scam_score": 0.168702,
+      "correct": false
+    },
+    {
+      "id": "C07",
+      "name": "Investment scam",
+      "text": "Guaranteed 300 percent return in seven days. There is no risk. Deposit your money today.",
+      "expected": "scam",
+      "prediction": "scam",
+      "scam_score": 0.823795,
+      "correct": true
+    },
+    {
+      "id": "C08",
+      "name": "Normal meeting message",
+      "text": "Our meeting has been moved to 3 PM tomorrow.",
+      "expected": "legitimate",
+      "prediction": "legitimate",
+      "scam_score": 0.054204,
+      "correct": true
+    },
+    {
+      "id": "C09",
+      "name": "Fake account alert",
+      "text": "Your account will be suspended today. Confirm your login information immediately to avoid losing access.",
+      "expected": "scam",
+      "prediction": "scam",
+      "scam_score": 0.657231,
+      "correct": true
+    },
+    {
+      "id": "C10",
+      "name": "Legitimate security advice",
+      "text": "For your security, use the official banking app and never give your password or verification code to another person.",
+      "expected": "legitimate",
+      "prediction": "legitimate",
+      "scam_score": 0.462918,
+      "correct": true
+    }
+  ]
+}

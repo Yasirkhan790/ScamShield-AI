@@ -1,9 +1,12 @@
 from typing import Any, Literal
+
 from pydantic import BaseModel, Field, field_validator
+
 
 RiskLevel = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 IndicatorSeverity = Literal["low", "medium", "high"]
 AIStatus = Literal["used", "disabled", "fallback"]
+MLStatus = Literal["used", "disabled", "fallback"]
 HistoryInputType = Literal["message", "url", "screenshot"]
 
 
@@ -26,10 +29,13 @@ class URLAnalysisRequest(BaseModel):
     @classmethod
     def strip_url(cls, value: str) -> str:
         value = value.strip()
+
         if not value:
             raise ValueError("URL cannot be empty")
+
         if any(char.isspace() for char in value):
             raise ValueError("URL cannot contain spaces")
+
         return value
 
 
@@ -49,18 +55,61 @@ class AIObservation(BaseModel):
 
 class BaseAnalysisResponse(BaseModel):
     analysis_id: int | None = None
+
     summary: str
     category: str
-    secondary_categories: list[str] = Field(default_factory=list)
-    risk_score: int = Field(..., ge=0, le=100)
+
+    secondary_categories: list[str] = Field(
+        default_factory=list
+    )
+
+    risk_score: int = Field(
+        ...,
+        ge=0,
+        le=100,
+    )
+
     risk_level: RiskLevel
+
     indicators: list[Indicator]
-    ai_observations: list[AIObservation] = Field(default_factory=list)
+
+    # AI evidence
+    ai_observations: list[AIObservation] = Field(
+        default_factory=list
+    )
+
     ai_status: AIStatus = "disabled"
     ai_provider: str | None = None
+
+    # ML evidence
+    ml_status: MLStatus = "disabled"
+
+    ml_model_version: str | None = None
+
+    ml_scam_score: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
+
+    ml_predicted_label: Literal[
+        "scam",
+        "legitimate",
+    ] | None = None
+
+    ml_selected_threshold: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
+
     recommended_actions: list[str]
+
     disclaimer: str
-    analysis_steps: list[str] = Field(default_factory=list)
+
+    analysis_steps: list[str] = Field(
+        default_factory=list
+    )
 
 
 class MessageAnalysisResponse(BaseAnalysisResponse):
@@ -77,21 +126,39 @@ class ScreenshotAnalysisResponse(BaseAnalysisResponse):
     extracted_text: str
     file_name: str
     image_type: str
+
     text_extraction_status: Literal["used"] = "used"
+
     text_extraction_provider: str
 
 
 class HistoryListItem(BaseModel):
     id: int
+
     input_type: HistoryInputType
+
     input_content: str
+
     scam_category: str
-    risk_score: int = Field(..., ge=0, le=100)
+
+    risk_score: int = Field(
+        ...,
+        ge=0,
+        le=100,
+    )
+
     risk_level: RiskLevel
+
     created_at: str
 
 
 class HistoryDetail(HistoryListItem):
-    red_flags: list[dict[str, Any]] = Field(default_factory=list)
-    recommendations: list[str] = Field(default_factory=list)
+    red_flags: list[dict[str, Any]] = Field(
+        default_factory=list
+    )
+
+    recommendations: list[str] = Field(
+        default_factory=list
+    )
+
     result: dict[str, Any]

@@ -1,17 +1,46 @@
-from app.models.analysis import MessageAnalysisResponse, ScreenshotAnalysisResponse, URLAnalysisResponse
-from app.services.message_analysis_service import analyze_message_content
-from app.services.screenshot_analysis_service import analyze_screenshot_content
-from app.services.url_analysis_service import analyze_url_content
+from app.agents.orchestrator import (
+    scamshield_orchestrator,
+)
+
+from app.models.analysis import (
+    MessageAnalysisResponse,
+    ScreenshotAnalysisResponse,
+    URLAnalysisResponse,
+)
 
 
 class ScamShieldAgent:
-    """Small agentic orchestrator for the hackathon MVP."""
+    """
+    Backward-compatible facade used by existing API
+    endpoints.
 
-    def analyze_message(self, message: str) -> MessageAnalysisResponse:
-        return analyze_message_content(message)
+    Internally all requests now pass through the
+    ScamShield multi-agent orchestrator.
+    """
 
-    def analyze_url(self, url: str) -> URLAnalysisResponse:
-        return analyze_url_content(url)
+    def analyze_message(
+        self,
+        message: str,
+    ) -> MessageAnalysisResponse:
+
+        return (
+            scamshield_orchestrator
+            .analyze_message(
+                message
+            )
+        )
+
+    def analyze_url(
+        self,
+        url: str,
+    ) -> URLAnalysisResponse:
+
+        return (
+            scamshield_orchestrator
+            .analyze_url(
+                url
+            )
+        )
 
     def analyze_screenshot(
         self,
@@ -19,7 +48,15 @@ class ScamShieldAgent:
         mime_type: str,
         file_name: str | None,
     ) -> ScreenshotAnalysisResponse:
-        return analyze_screenshot_content(image_bytes, mime_type, file_name)
+
+        return (
+            scamshield_orchestrator
+            .analyze_screenshot(
+                image_bytes,
+                mime_type,
+                file_name,
+            )
+        )
 
 
 scamshield_agent = ScamShieldAgent()

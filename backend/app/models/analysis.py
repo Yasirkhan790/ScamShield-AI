@@ -3,38 +3,94 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 
 
-RiskLevel = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
-IndicatorSeverity = Literal["low", "medium", "high"]
-AIStatus = Literal["used", "disabled", "fallback"]
-MLStatus = Literal["used", "disabled", "fallback"]
-HistoryInputType = Literal["message", "url", "screenshot"]
+RiskLevel = Literal[
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "CRITICAL",
+]
+
+IndicatorSeverity = Literal[
+    "low",
+    "medium",
+    "high",
+]
+
+AIStatus = Literal[
+    "used",
+    "disabled",
+    "fallback",
+]
+
+MLStatus = Literal[
+    "used",
+    "disabled",
+    "fallback",
+]
+
+AgentTraceStatus = Literal[
+    "used",
+    "disabled",
+    "fallback",
+]
+
+HistoryInputType = Literal[
+    "message",
+    "url",
+    "screenshot",
+]
 
 
 class MessageAnalysisRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=10000)
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=10000,
+    )
 
     @field_validator("message")
     @classmethod
-    def strip_message(cls, value: str) -> str:
+    def strip_message(
+        cls,
+        value: str,
+    ) -> str:
         value = value.strip()
+
         if not value:
-            raise ValueError("Message cannot be empty")
+            raise ValueError(
+                "Message cannot be empty"
+            )
+
         return value
 
 
 class URLAnalysisRequest(BaseModel):
-    url: str = Field(..., min_length=1, max_length=2048)
+    url: str = Field(
+        ...,
+        min_length=1,
+        max_length=2048,
+    )
 
     @field_validator("url")
     @classmethod
-    def strip_url(cls, value: str) -> str:
+    def strip_url(
+        cls,
+        value: str,
+    ) -> str:
         value = value.strip()
 
         if not value:
-            raise ValueError("URL cannot be empty")
+            raise ValueError(
+                "URL cannot be empty"
+            )
 
-        if any(char.isspace() for char in value):
-            raise ValueError("URL cannot contain spaces")
+        if any(
+            char.isspace()
+            for char in value
+        ):
+            raise ValueError(
+                "URL cannot contain spaces"
+            )
 
         return value
 
@@ -53,10 +109,50 @@ class AIObservation(BaseModel):
     severity: IndicatorSeverity
 
 
+class AgentTraceEntry(BaseModel):
+    agent: str
+    status: AgentTraceStatus
+    summary: str
+
+
+class IncidentReport(BaseModel):
+    triggered: bool = True
+
+    priority: Literal[
+        "HIGH",
+        "CRITICAL",
+    ]
+
+    title: str
+
+    summary: str
+
+    category: str
+
+    risk_score: int = Field(
+        ...,
+        ge=0,
+        le=100,
+    )
+
+    risk_level: RiskLevel
+
+    evidence: list[str] = Field(
+        default_factory=list
+    )
+
+    recommended_actions: list[str] = Field(
+        default_factory=list
+    )
+
+    escalation_reason: str
+
+
 class BaseAnalysisResponse(BaseModel):
     analysis_id: int | None = None
 
     summary: str
+
     category: str
 
     secondary_categories: list[str] = Field(
@@ -73,15 +169,24 @@ class BaseAnalysisResponse(BaseModel):
 
     indicators: list[Indicator]
 
-    # AI evidence
-    ai_observations: list[AIObservation] = Field(
+    # ========================================================
+    # AI EVIDENCE
+    # ========================================================
+
+    ai_observations: list[
+        AIObservation
+    ] = Field(
         default_factory=list
     )
 
     ai_status: AIStatus = "disabled"
+
     ai_provider: str | None = None
 
-    # ML evidence
+    # ========================================================
+    # TRAINED ML EVIDENCE
+    # ========================================================
+
     ml_status: MLStatus = "disabled"
 
     ml_model_version: str | None = None
@@ -103,6 +208,48 @@ class BaseAnalysisResponse(BaseModel):
         le=1.0,
     )
 
+    # ========================================================
+    # V2 TAXONOMY + EVIDENCE FUSION
+    # ========================================================
+
+    taxonomy_version: str | None = None
+
+    normalized_indicators: list[str] = Field(
+        default_factory=list
+    )
+
+    mitigating_indicators: list[str] = Field(
+        default_factory=list
+    )
+
+    evidence_sources: list[str] = Field(
+        default_factory=list
+    )
+
+    risk_adjustments: list[str] = Field(
+        default_factory=list
+    )
+
+    # ========================================================
+    # REAL BACKEND AGENT TRACE
+    # ========================================================
+
+    agent_trace: list[
+        AgentTraceEntry
+    ] = Field(
+        default_factory=list
+    )
+
+    # ========================================================
+    # HIGH / CRITICAL INCIDENT AUTOMATION
+    # ========================================================
+
+    incident_report: IncidentReport | None = None
+
+    # ========================================================
+    # FINAL USER GUIDANCE
+    # ========================================================
+
     recommended_actions: list[str]
 
     disclaimer: str
@@ -112,22 +259,34 @@ class BaseAnalysisResponse(BaseModel):
     )
 
 
-class MessageAnalysisResponse(BaseAnalysisResponse):
+class MessageAnalysisResponse(
+    BaseAnalysisResponse
+):
     pass
 
 
-class URLAnalysisResponse(BaseAnalysisResponse):
+class URLAnalysisResponse(
+    BaseAnalysisResponse
+):
     normalized_url: str
+
     host: str
+
     uses_https: bool
 
 
-class ScreenshotAnalysisResponse(BaseAnalysisResponse):
+class ScreenshotAnalysisResponse(
+    BaseAnalysisResponse
+):
     extracted_text: str
+
     file_name: str
+
     image_type: str
 
-    text_extraction_status: Literal["used"] = "used"
+    text_extraction_status: Literal[
+        "used"
+    ] = "used"
 
     text_extraction_provider: str
 
@@ -152,8 +311,12 @@ class HistoryListItem(BaseModel):
     created_at: str
 
 
-class HistoryDetail(HistoryListItem):
-    red_flags: list[dict[str, Any]] = Field(
+class HistoryDetail(
+    HistoryListItem
+):
+    red_flags: list[
+        dict[str, Any]
+    ] = Field(
         default_factory=list
     )
 

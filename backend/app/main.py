@@ -3,20 +3,67 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 
-# Load local .env values before application modules read configuration.
+
+# ============================================================
+# LOAD ENVIRONMENT VARIABLES
+# ============================================================
+
+# Load local .env values before application modules read
+# configuration.
 load_dotenv()
+
+
+# ============================================================
+# FASTAPI IMPORTS
+# ============================================================
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.ai.provider import get_ai_provider
-from app.api.analysis import router as analysis_router
-from app.api.history import router as history_router
-from app.database.history_repository import initialize_database
-from app.ml.classifier import ml_health
 
+# ============================================================
+# SCAMSHIELD IMPORTS
+# ============================================================
+
+from app.ai.provider import (
+    get_ai_provider,
+)
+
+from app.api.analysis import (
+    router as analysis_router,
+)
+
+from app.api.history import (
+    router as history_router,
+)
+
+from app.database.history_repository import (
+    initialize_database,
+)
+
+from app.ml.classifier import (
+    ml_health,
+)
+
+from app.services.local_ocr_service import (
+    local_ocr_health,
+)
+
+
+# ============================================================
+# CORS CONFIGURATION
+# ============================================================
 
 def _cors_origins() -> list[str]:
+    """
+    Read allowed frontend origins from the CORS_ORIGINS
+    environment variable.
+
+    Example:
+
+    CORS_ORIGINS=http://localhost:5173,https://your-app.vercel.app
+    """
+
     raw = os.getenv(
         "CORS_ORIGINS",
         "http://localhost:5173",
@@ -29,39 +76,91 @@ def _cors_origins() -> list[str]:
     ]
 
 
+# ============================================================
+# APPLICATION LIFESPAN
+# ============================================================
+
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    # Initialize SQLite/history database.
+async def lifespan(
+    _: FastAPI,
+):
+    """
+    Initialize ScamShield resources during application startup.
+
+    Startup tasks:
+    - Initialize SQLite history database
+    - Load/cache trained ML classifier
+    - Check local OCR configuration
+    """
+
+    # --------------------------------------------------------
+    # Initialize history database
+    # --------------------------------------------------------
+
     initialize_database()
 
-    # Load/cache ML classifier during startup when enabled.
-    # Calling ml_health() triggers the cached classifier loader.
+    # --------------------------------------------------------
+    # Load the frozen ML model into cache
+    # --------------------------------------------------------
+
     ml_health()
+
+    # --------------------------------------------------------
+    # Check local OCR configuration
+    # --------------------------------------------------------
+
+    local_ocr_health()
 
     yield
 
 
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
+
 app = FastAPI(
     title="ScamShield AI API",
+
     version="2.0.0",
+
     description=(
-        "Hybrid AI-assisted and explainable "
-        "scam risk assessment API"
+        "ScamShield AI V2 is a hybrid, multi-agent, "
+        "explainable scam risk assessment API. "
+        "It combines deterministic rules, trained machine "
+        "learning, taxonomy-based evidence fusion, optional "
+        "semantic AI, URL analysis, screenshot text extraction, "
+        "local OCR fallback, and safety automation."
     ),
+
     lifespan=lifespan,
 )
 
 
+# ============================================================
+# CORS MIDDLEWARE
+# ============================================================
+
 app.add_middleware(
     CORSMiddleware,
+
     allow_origins=_cors_origins(),
+
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+
+    allow_methods=[
+        "*",
+    ],
+
+    allow_headers=[
+        "*",
+    ],
 )
 
 
-# Existing API routes
+# ============================================================
+# API ROUTERS
+# ============================================================
+
 app.include_router(
     analysis_router
 )
@@ -71,25 +170,62 @@ app.include_router(
 )
 
 
+# ============================================================
+# ROOT ENDPOINT
+# ============================================================
+
+@app.get("/")
+def root():
+    """
+    Simple deployment verification endpoint.
+    """
+
+    return {
+        "service": "ScamShield AI API",
+
+        "version": "2.0.0",
+
+        "status": "running",
+
+        "health_endpoint": "/api/health",
+
+        "docs_endpoint": "/docs",
+    }
+
+
+# ============================================================
+# HEALTH ENDPOINT
+# ============================================================
+
 @app.get("/api/health")
 def health_check():
     """
-    Health endpoint.
+    ScamShield V2 health endpoint.
 
     Reports:
-    - Core API readiness
-    - External AI provider readiness
+    - API readiness
+    - Generative AI provider availability
+    - Local OCR availability
     - Screenshot readiness
-    - Local ML model readiness
+    - ML model readiness
     - ML model version
     - Frozen ML threshold
+    - Enabled capabilities
 
-    No secrets are returned.
+    No secrets or API keys are returned.
     """
 
-    provider = get_ai_provider()
+    # ========================================================
+    # GENERATIVE / SEMANTIC AI
+    # ========================================================
 
-    ml = ml_health()
+    provider = (
+        get_ai_provider()
+    )
+
+    ai_ready = (
+        provider is not None
+    )
 
     ai_provider = (
         provider.name
@@ -97,33 +233,90 @@ def health_check():
         else "disabled"
     )
 
-    screenshot_ready = (
-        provider is not None
+
+    # ========================================================
+    # TRAINED LOCAL ML
+    # ========================================================
+
+    ml = (
+        ml_health()
     )
 
+
+    # ========================================================
+    # LOCAL OCR
+    # ========================================================
+
+    ocr = (
+        local_ocr_health()
+    )
+
+
+    # ========================================================
+    # SCREENSHOT READINESS
+    #
+    # Screenshot processing is considered ready when either:
+    #
+    # 1. a multimodal AI provider is configured
+    #
+    # OR
+    #
+    # 2. local Tesseract OCR is enabled and available
+    # ========================================================
+
+    screenshot_ready = (
+        ai_ready
+        or ocr["ready"]
+    )
+
+
+    # ========================================================
+    # HEALTH RESPONSE
+    # ========================================================
+
     return {
+        # ----------------------------------------------------
+        # CORE SERVICE
+        # ----------------------------------------------------
+
         "status": "ok",
 
         "service": "ScamShield AI API",
 
         "version": "2.0.0",
 
-        # --------------------------------------------
-        # External Generative AI
-        # --------------------------------------------
 
-        "ai_provider": ai_provider,
+        # ----------------------------------------------------
+        # GENERATIVE / SEMANTIC AI
+        # ----------------------------------------------------
 
-        "ai_ready": (
-            provider is not None
-        ),
+        "ai_provider":
+            ai_provider,
+
+        "ai_ready":
+            ai_ready,
+
+
+        # ----------------------------------------------------
+        # SCREENSHOT / OCR
+        # ----------------------------------------------------
 
         "screenshot_ready":
             screenshot_ready,
 
-        # --------------------------------------------
-        # Local trained ML classifier
-        # --------------------------------------------
+        "local_ocr_enabled":
+            ocr["enabled"],
+
+        "local_ocr_ready":
+            ocr["ready"],
+
+        "local_ocr_provider":
+            ocr["provider"],
+
+
+        # ----------------------------------------------------
+        # TRAINED LOCAL ML
+        # ----------------------------------------------------
 
         "ml_status":
             ml["status"],
@@ -137,26 +330,47 @@ def health_check():
         "ml_selected_threshold":
             ml["selected_threshold"],
 
-        # --------------------------------------------
-        # Available capabilities
-        # --------------------------------------------
+
+        # ----------------------------------------------------
+        # AVAILABLE CAPABILITIES
+        # ----------------------------------------------------
 
         "features": [
             "message-analysis",
+
             "url-analysis",
+
             "screenshot-analysis",
+
+            "multi-agent-orchestration",
 
             "trained-local-ml-classifier",
 
+            "v2-indicator-taxonomy",
+
+            "evidence-fusion-agent",
+
+            "deterministic-risk-agent",
+
+            "mitigation-aware-analysis",
+
+            "incident-automation",
+
             "multimodal-text-extraction",
 
+            "local-tesseract-ocr-fallback",
+
             "structured-ai-analysis",
+
+            "safe-ai-fallback",
 
             "deterministic-risk-engine",
 
             "sqlite-history",
 
             "privacy-safe-input-previews",
+
+            "real-backend-agent-trace",
 
             "demo-ready-sample-cases",
 
